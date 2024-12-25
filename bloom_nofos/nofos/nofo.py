@@ -18,7 +18,7 @@ from slugify import slugify
 
 from .models import Nofo, Section, Subsection
 from .nofo_markdown import md
-from .utils import clean_string, create_subsection_html_id
+from .utils import add_html_id_to_subsection, clean_string, create_subsection_html_id
 
 DEFAULT_NOFO_OPPORTUNITY_NUMBER = "NOFO #999"
 # Use Firefox user agent
@@ -164,15 +164,30 @@ def add_page_breaks_to_headings(nofo):
 
 
 def _build_nofo(nofo, sections):
+    sections_to_create = []
+    subsections_to_create = []
+
     for section in sections:
-        model_section = Section(
-            name=section.get("name", "Section X"),
-            order=section.get("order", ""),
-            html_id=section.get("html_id", None),
-            has_section_page=section.get("has_section_page"),
-            nofo=nofo,
+        sections_to_create.append(
+            Section(
+                name=section.get("name", "Section X"),
+                order=section.get("order", ""),
+                html_id=section.get("html_id", None),
+                has_section_page=section.get("has_section_page"),
+                nofo=nofo,
+            )
         )
-        model_section.save()
+
+    # Bulk create sections and retrieve them
+    created_sections = Section.objects.bulk_create(sections_to_create)
+
+    # Map created sections to their names for subsection linking
+    section_mapping = {section.name: section for section in created_sections}
+
+    for section in sections:
+        model_section = section_mapping.get(section.get("name", "Section X"))
+        if not model_section:
+            continue
 
         for subsection in section.get("subsections", []):
             md_body = ""
@@ -187,7 +202,7 @@ def _build_nofo(nofo, sections):
                 if html_body:
                     md_body = md("".join(html_body), escape_misc=False)
 
-            model_subsection = Subsection(
+            new_subsection = Subsection(
                 name=subsection.get("name", ""),
                 order=subsection.get("order", ""),
                 tag=subsection.get("tag", ""),
@@ -199,8 +214,12 @@ def _build_nofo(nofo, sections):
                 body=md_body,  # body can be empty
                 section=model_section,
             )
-            model_subsection.save()
 
+            # Ensure `subsection.html_id` is assigned if not already set
+            add_html_id_to_subsection(new_subsection)
+            subsections_to_create.append(new_subsection)
+
+    Subsection.objects.bulk_create(subsections_to_create)
     return nofo
 
 
