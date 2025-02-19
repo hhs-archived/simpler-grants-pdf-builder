@@ -993,9 +993,13 @@ class NofoHistoryView(GroupAccessObjectMixin, DetailView):
     events_per_page = 25  # Show 25 events per batch
 
     def get_context_data(self, **kwargs):
+        print("-- 996")
         context = super().get_context_data(**kwargs)
+        print("-- 998")
         context["today_m_j"] = dateformat.format(timezone.now(), "M j")
+        print("-- 1000")
         offset = int(self.request.GET.get("offset", 0))
+        print("-- 1002")
 
         # Get audit events for this NOFO
         nofo_events = (
@@ -1009,12 +1013,14 @@ class NofoHistoryView(GroupAccessObjectMixin, DetailView):
             )
             .order_by("-datetime")
         )
+        print("-- 1016")
 
         # Get audit events for sections
         section_events = CRUDEvent.objects.filter(
             object_id__in=self.object.sections.values_list("id", flat=True),
             content_type__model="section",
         ).order_by("-datetime")
+        print("-- 1023")
 
         # Get audit events for subsections
         subsection_events = CRUDEvent.objects.filter(
@@ -1023,6 +1029,7 @@ class NofoHistoryView(GroupAccessObjectMixin, DetailView):
             ).values_list("id", flat=True),
             content_type__model="subsection",
         ).order_by("-datetime")
+        print("-- 1032")
 
         # Combine all events and sort by datetime
         all_events = []
@@ -1031,6 +1038,8 @@ class NofoHistoryView(GroupAccessObjectMixin, DetailView):
             key=lambda x: x.datetime,
             reverse=True,
         ):
+            print("-- 1041")
+
             event_details = {
                 "event_type": event.get_event_type_display(),
                 "object_type": event.content_type.model.title(),
@@ -1038,6 +1047,7 @@ class NofoHistoryView(GroupAccessObjectMixin, DetailView):
                 "user": event.user,
                 "timestamp": event.datetime,
             }
+            print("-- 1050")
 
             # Handle subsection events
             if event.content_type.model == "subsection":
@@ -1046,37 +1056,58 @@ class NofoHistoryView(GroupAccessObjectMixin, DetailView):
                 event_details["object_description"] = (
                     f"{subsection.section.name} - {name}"
                 )
+                print("-- 1059")
 
             # Handle custom audit events (nofo_import, nofo_print, nofo_reimport)
             if event.changed_fields and event.changed_fields.strip():
                 changed_fields = json.loads(event.changed_fields)
+                print("-- 1064")
+
                 if isinstance(changed_fields, dict):
                     if "action" in changed_fields:
                         action = changed_fields["action"]
                         if action == "nofo_import":
                             event_details["event_type"] = "NOFO Imported"
+                            print("-- 1071")
                         elif action == "nofo_print":
                             event_details["event_type"] = "NOFO Printed"
                             if "print_mode" in changed_fields:
                                 event_details[
                                     "event_type"
                                 ] += f" ({changed_fields['print_mode'][0]} mode)"
+                                print("-- 1078")
+
                         elif action == "nofo_reimport":
                             event_details["event_type"] = "NOFO Re-imported"
+                            print("-- 1082")
+
                     elif event.content_type.model == "nofo":
+                        print("-- 1085")
+
                         field_name = next(iter(changed_fields.keys()))
                         # Convert field_name from snake_case to Title Case
+                        print("-- 1089")
+
                         formatted_field = " ".join(
                             word.title() for word in field_name.split("_")
                         )
+                        print("-- 1094")
+
                         event_details["object_description"] = f"{formatted_field}"
+            print("-- 1097")
 
             all_events.append(event_details)
 
+        print("-- 1101")
+
         # Slice the results for pagination
         end_offset = offset + self.events_per_page
+        print("-- 1105")
         context["audit_events"] = all_events[offset:end_offset]
+        print("-- 1107")
         context["has_more"] = len(all_events) > end_offset
+        print("-- 1109")
         context["next_offset"] = end_offset
+        print("-- 1105")
 
         return context
