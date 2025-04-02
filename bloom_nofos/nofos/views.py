@@ -188,6 +188,9 @@ class NofosListView(ListView):
         # Exclude archived NOFOs
         queryset = queryset.filter(archived__isnull=True)
 
+        # Only "nofo" type objects
+        queryset = queryset.filter(document_type="nofo")
+
         # default status: return unpublished NOFOs
         self.status = self.request.GET.get("status", "in progress")
         # default group: 'all' nofos unless a bloom user. if bloom user, default to 'bloom'
@@ -1372,3 +1375,19 @@ class NofoHistoryView(
         )
 
         return context
+
+
+###########################################################
+################## CONTENT GUIDE SPIKE ####################
+###########################################################
+
+
+class ContentGuideListView(ListView):
+    model = Nofo
+    template_name = "nofos/content_guide_index.html"
+    context_object_name = "content_guides"
+
+    def get_queryset(self):
+        return Nofo.objects.filter(document_type="content_guide").filter(
+            archived__isnull=True
+        )

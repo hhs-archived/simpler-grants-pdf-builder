@@ -153,4 +153,5 @@ urlpatterns = [
         views.CheckNOFOLinkSingleView.as_view(),
         name="nofo_check_link_single",
     ),
+    path("guides/", views.ContentGuideListView.as_view(), name="content_guide_index"),
 ]
