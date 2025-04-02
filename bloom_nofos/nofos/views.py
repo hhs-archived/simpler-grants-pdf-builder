@@ -1409,12 +1409,13 @@ class ImportNewContentGuideView(BaseNofoImportView):
             nofo_title = suggest_nofo_title(soup)
             opdiv = suggest_nofo_opdiv(soup)
 
-            nofo = create_nofo(nofo_title, sections, opdiv)
+            nofo = create_nofo(
+                nofo_title, sections, opdiv, document_type="content_guide"
+            )
             add_headings_to_nofo(nofo)
             add_page_breaks_to_headings(nofo)
             suggest_all_nofo_fields(nofo, soup)
             nofo.group = request.user.group
-            nofo.document_type = "content_guide"
             nofo.save()
 
             create_nofo_audit_event(

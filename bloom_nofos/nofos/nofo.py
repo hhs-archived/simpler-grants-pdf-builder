@@ -19,7 +19,7 @@ from django.forms import ValidationError
 from django.utils.html import escape
 from slugify import slugify
 
-from .models import Nofo, Section, Subsection
+from .models import Nofo, Section, Subsection, DiffSubsection
 from .nofo_markdown import md
 from .utils import (
     add_html_id_to_subsection,
@@ -291,6 +291,11 @@ def _build_nofo(nofo, sections):
     sections_to_create = []
     subsections_to_create = []
 
+    # Determine which model to use for subsections
+    SubsectionModel = (
+        DiffSubsection if nofo.document_type == "content_guide" else Subsection
+    )
+
     for section in sections:
         # Generate a default html_id based on section name and order
         section_name = section.get("name", "Section X")
@@ -336,7 +341,7 @@ def _build_nofo(nofo, sections):
                     # strip excess newlines, then add 1 trailing newline
                     md_body = md_body.strip() + "\n"
 
-            subsection_obj = Subsection(
+            subsection_obj = SubsectionModel(
                 name=subsection.get("name", ""),
                 order=subsection.get("order", ""),
                 tag=subsection.get("tag", ""),
@@ -358,14 +363,15 @@ def _build_nofo(nofo, sections):
                 raise e
             subsections_to_create.append(subsection_obj)
 
-    Subsection.objects.bulk_create(subsections_to_create)
+    SubsectionModel.objects.bulk_create(subsections_to_create)
     return nofo
 
 
-def create_nofo(title, sections, opdiv):
+def create_nofo(title, sections, opdiv, document_type="nofo"):
     nofo = Nofo(title=title)
     nofo.number = "NOFO #999"
     nofo.opdiv = opdiv
+    nofo.document_type = document_type
     nofo.save()
     try:
         return _build_nofo(nofo, sections)
