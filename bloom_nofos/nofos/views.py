@@ -1391,3 +1391,38 @@ class ContentGuideListView(ListView):
         return Nofo.objects.filter(document_type="content_guide").filter(
             archived__isnull=True
         )
+
+
+class ImportNewContentGuideView(BaseNofoImportView):
+    """
+    Handles importing a NEW Content Guide from an uploaded file.
+    """
+
+    template_name = "nofos/content_guide_import.html"
+
+    def handle_nofo_create(self, request, soup, sections, filename, *args, **kwargs):
+        """
+        Create a new Content Guide with the parsed data.
+        """
+        try:
+            nofo_title = suggest_nofo_title(soup)
+            opdiv = suggest_nofo_opdiv(soup)
+
+            nofo = create_nofo(nofo_title, sections, opdiv)
+            add_headings_to_nofo(nofo)
+            add_page_breaks_to_headings(nofo)
+            suggest_all_nofo_fields(nofo, soup)
+            nofo.group = request.user.group
+            nofo.document_type = "content_guide"
+            nofo.save()
+
+            create_nofo_audit_event(
+                event_type="nofo_import", nofo=nofo, user=request.user
+            )
+
+            return redirect("nofos:content_guide_index")
+
+        except (ValidationError, HeadingValidationError) as e:
+            return HttpResponseBadRequest(f"Error creating Content Guide: {e}")
+        except Exception as e:
+            return HttpResponseBadRequest(f"Error creating Content Guide: {str(e)}")

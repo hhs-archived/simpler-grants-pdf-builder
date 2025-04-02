@@ -154,4 +154,9 @@ urlpatterns = [
         name="nofo_check_link_single",
     ),
     path("guides/", views.ContentGuideListView.as_view(), name="content_guide_index"),
+    path(
+        "guides/import",
+        views.ImportNewContentGuideView.as_view(),
+        name="content_guide_import",
+    ),
 ]

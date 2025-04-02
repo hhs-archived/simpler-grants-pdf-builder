@@ -121,6 +121,7 @@ class NofoAdmin(MirrorAdmin, admin.ModelAdmin):
                 "fields": (
                     "title",
                     "short_name",
+                    "document_type",
                     "status",
                     "number",
                     "opdiv",
