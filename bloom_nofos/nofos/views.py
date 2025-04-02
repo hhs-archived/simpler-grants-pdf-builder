@@ -30,6 +30,7 @@ from bloom_nofos.utils import cast_to_boolean, is_docraptor_live_mode_active
 
 from .forms import (
     CheckNOFOLinkSingleForm,
+    ContentGuideShortNameForm,
     InsertOrderSpaceForm,
     NofoAgencyForm,
     NofoApplicationDeadlineForm,
@@ -1419,10 +1420,17 @@ class ImportNewContentGuideView(BaseNofoImportView):
             create_nofo_audit_event(
                 event_type="nofo_import", nofo=nofo, user=request.user
             )
-
-            return redirect("nofos:content_guide_index")
+            return redirect("nofos:content_guide_short_name", pk=nofo.pk)
 
         except (ValidationError, HeadingValidationError) as e:
             return HttpResponseBadRequest(f"Error creating Content Guide: {e}")
         except Exception as e:
             return HttpResponseBadRequest(f"Error creating Content Guide: {str(e)}")
+
+
+class ContentGuideEditShortNameView(BaseNofoEditView):
+    form_class = ContentGuideShortNameForm
+    template_name = "nofos/content_guide_short_name.html"
+
+    def get_success_url(self):
+        return reverse_lazy("nofos:content_guide_index")

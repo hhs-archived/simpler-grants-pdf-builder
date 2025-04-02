@@ -236,3 +236,8 @@ class InsertOrderSpaceForm(forms.Form):
             choices.append((order, str(order)))
 
         self.fields["order"].choices = choices
+
+
+# "Name your content guide" form
+
+ContentGuideShortNameForm = create_nofo_form_class(["short_name"])

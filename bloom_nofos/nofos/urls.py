@@ -159,4 +159,9 @@ urlpatterns = [
         views.ImportNewContentGuideView.as_view(),
         name="content_guide_import",
     ),
+    path(
+        "guides/<int:pk>/short-name",
+        views.ContentGuideEditShortNameView.as_view(),
+        name="content_guide_short_name",
+    ),
 ]
