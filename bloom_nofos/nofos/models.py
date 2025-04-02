@@ -41,6 +41,11 @@ DESIGNER_CHOICES = [
     ("hrsa-stephanie", "Stephanie V"),
 ]
 
+DOCUMENT_TYPE_CHOICES = [
+    ("nofo", "NOFO"),
+    ("content_guide", "Content Guide"),
+]
+
 
 STATUS_CHOICES = [
     ("draft", "Draft"),
@@ -81,6 +86,13 @@ class Nofo(models.Model):
         validators=[MaxLengthValidator(250)],
         blank=True,
         help_text="The official name for this NOFO. It will be public when the NOFO is published.",
+    )
+
+    document_type = models.CharField(
+        max_length=32,
+        choices=DOCUMENT_TYPE_CHOICES,
+        default="nofo",
+        help_text="Type of document: NOFO or Content Guide.",
     )
 
     filename = models.CharField(
@@ -401,7 +413,14 @@ class Section(models.Model):
     )
 
     class Meta:
+        ordering = ["order"]
         unique_together = ("nofo", "order")
+
+    @property
+    def subsections(self):
+        if self.nofo.document_type == "content_guide":
+            return self.diff_subsections
+        return self.nofo_subsections
 
     @classmethod
     def get_next_order(cls, nofo):
@@ -466,10 +485,7 @@ class HeadingValidationError(Exception):
     pass
 
 
-class Subsection(models.Model):
-    section = models.ForeignKey(
-        Section, on_delete=models.CASCADE, related_name="subsections"
-    )
+class BaseSubsection(models.Model):
     name = models.TextField(
         "Subsection name",
         max_length=400,
@@ -493,6 +509,8 @@ class Subsection(models.Model):
     order = models.IntegerField(null=True)
 
     class Meta:
+        abstract = True
+        ordering = ["order"]
         unique_together = ("section", "order")
 
     TAG_CHOICES = [
@@ -633,3 +651,34 @@ class Subsection(models.Model):
             .order_by("order")
             .first()
         )
+
+
+class Subsection(BaseSubsection):
+    section = models.ForeignKey(
+        Section, on_delete=models.CASCADE, related_name="nofo_subsections"
+    )
+
+
+class DiffSubsection(BaseSubsection):
+    section = models.ForeignKey(
+        Section, on_delete=models.CASCADE, related_name="diff_subsections"
+    )
+
+    COMPARISON_CHOICES = [
+        ("none", "Do not compare"),
+        ("name", "Compare name"),
+        ("body", "Compare name and all text"),
+        ("diff_strings", "Compare name and text segments"),
+    ]
+
+    comparison_type = models.CharField(
+        max_length=20,
+        choices=COMPARISON_CHOICES,
+        default="name",
+    )
+
+    diff_strings = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of required strings that must be present in the body.",
+    )
