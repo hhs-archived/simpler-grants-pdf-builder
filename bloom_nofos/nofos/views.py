@@ -1389,8 +1389,10 @@ class ContentGuideListView(ListView):
     context_object_name = "content_guides"
 
     def get_queryset(self):
-        return Nofo.objects.filter(document_type="content_guide").filter(
-            archived__isnull=True
+        return (
+            Nofo.objects.filter(document_type="content_guide")
+            .filter(archived__isnull=True)
+            .order_by("-updated")
         )
 
 
@@ -1435,3 +1437,9 @@ class ContentGuideEditShortNameView(BaseNofoEditView):
 
     def get_success_url(self):
         return reverse_lazy("nofos:content_guide_index")
+
+
+class ContentGuideDetailView(DetailView):
+    model = Nofo
+    template_name = "nofos/content_guide_detail.html"
+    context_object_name = "content_guide"
