@@ -25,7 +25,7 @@
         <tbody>
           {% for guide in content_guides %}
             <tr>
-              <th scope="row">{{ guide.short_name }}</th>
+              <th scope="row"><a href="{% url 'nofos:content_guide_detail' guide.pk %}">{{ guide.short_name }}</a></th>
               {% timezone "America/New_York" %}
 							  <td>
 									{{ guide.updated|date:'M j' }}{% if guide.updated|date:'M j' == today_m_j %},<br>{{ guide.updated|date:'g:i A' }}{% endif %}

@@ -1417,6 +1417,7 @@ class ImportNewContentGuideView(BaseNofoImportView):
             add_headings_to_nofo(nofo)
             add_page_breaks_to_headings(nofo)
             suggest_all_nofo_fields(nofo, soup)
+            nofo.filename = filename
             nofo.group = request.user.group
             nofo.save()
 
@@ -1443,3 +1444,8 @@ class ContentGuideDetailView(DetailView):
     model = Nofo
     template_name = "nofos/content_guide_detail.html"
     context_object_name = "content_guide"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["nofo"] = self.object
+        return context

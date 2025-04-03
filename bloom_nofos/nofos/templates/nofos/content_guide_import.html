@@ -23,7 +23,7 @@
   </div>
   {% endif %}
 
-  {% url 'nofos:nofo_index' as back_href %}
+  {% url 'nofos:content_guide_index' as back_href %}
   {% include "includes/page_heading.html" with title="Import a new Content Guide" back_text="All NOFOs" back_href=back_href only %}
 
   <form id="nofo-import--form" class="form-import--loading" method="post" enctype="multipart/form-data">

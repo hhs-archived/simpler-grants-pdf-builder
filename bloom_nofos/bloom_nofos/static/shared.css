@@ -114,6 +114,10 @@
   width: 10%;
 }
 
+.w-5 {
+  width: 5%;
+}
+
 .usa-button--green,
 .usa-button--green:visited {
   color: var(--color--white);
