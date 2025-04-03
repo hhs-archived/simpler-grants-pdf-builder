@@ -839,6 +839,10 @@ def compare_nofos(new_nofo, old_nofo):
     def get_subsection_name_or_order(subsection):
         return subsection.name or "(#{})".format(subsection.order)
 
+    def normalize_whitespace(text):
+        # Collapse all whitespace (including newlines and tabs) into single spaces
+        return re.sub(r"\s+", " ", text.strip())
+
     nofo_comparison = []
 
     for new_section in new_nofo.sections.all():
@@ -879,23 +883,45 @@ def compare_nofos(new_nofo, old_nofo):
                         break
 
                 if matched_old_subsection:
-                    # grab a diff. if only whitespaces changes, None is returned
-                    diff = html_diff(matched_old_subsection.body, new_subsection.body)
 
-                    # Check if body changed and diff is not None
-                    if new_subsection.body != matched_old_subsection.body and diff:
-                        section_comparison["subsections"].append(
-                            {
-                                "name": get_subsection_name_or_order(
-                                    matched_old_subsection
-                                ),
-                                "status": "UPDATE",
-                                "value": new_subsection.body,
-                                "diff": diff,
-                            }
+                    # okay so there are 3 things to do here:
+                    # 1. if no comparison_type or "body", do normal thing: body diff
+                    if (
+                        not hasattr(matched_old_subsection, "comparison_type")
+                        or matched_old_subsection.comparison_type == "body"
+                    ):
+
+                        # grab a diff. if only whitespaces changes, None is returned
+                        diff = html_diff(
+                            matched_old_subsection.body, new_subsection.body
                         )
 
-                    else:
+                        # Check if body changed and diff is not None
+                        if new_subsection.body != matched_old_subsection.body and diff:
+                            section_comparison["subsections"].append(
+                                {
+                                    "name": get_subsection_name_or_order(
+                                        matched_old_subsection
+                                    ),
+                                    "status": "UPDATE",
+                                    "value": new_subsection.body,
+                                    "diff": diff,
+                                }
+                            )
+
+                        else:
+                            section_comparison["subsections"].append(
+                                {
+                                    "name": get_subsection_name_or_order(
+                                        matched_old_subsection
+                                    ),
+                                    "value": new_subsection.body,
+                                    "status": "MATCH",
+                                }
+                            )
+                    elif matched_old_subsection.comparison_type == "none":
+                        pass
+                    elif matched_old_subsection.comparison_type == "name":
                         section_comparison["subsections"].append(
                             {
                                 "name": get_subsection_name_or_order(
@@ -904,6 +930,43 @@ def compare_nofos(new_nofo, old_nofo):
                                 "value": new_subsection.body,
                                 "status": "MATCH",
                             }
+                        )
+                    elif matched_old_subsection.comparison_type == "diff_strings":
+                        temp_comparison = {
+                            "name": get_subsection_name_or_order(
+                                matched_old_subsection
+                            ),
+                            "value": "{}\n\n".join(matched_old_subsection.diff_strings),
+                            "status": "MATCH",
+                        }
+                        diff = ""
+
+                        for diff_string in matched_old_subsection.diff_strings:
+                            normalized_body = normalize_whitespace(
+                                new_subsection.body
+                            ).lower()
+                            normalized_diff_string = normalize_whitespace(
+                                diff_string
+                            ).lower()
+
+                            if normalized_diff_string in normalized_body:
+                                # found string, all is well
+                                pass
+                            else:
+                                # string not found, add to diff
+                                diff += "<del>{}</del>".format(diff_string)
+
+                        if diff:
+                            temp_comparison["status"] = "UPDATE"
+                            temp_comparison["diff"] = diff
+
+                        section_comparison["subsections"].append(temp_comparison)
+
+                    else:
+                        raise Exception(
+                            'compare_nofos: Unexpected comparison_type "{}"'.format(
+                                matched_old_subsection.comparison_type
+                            )
                         )
                 else:
                     # If no match was found, it's a new addition
