@@ -31,6 +31,7 @@ from bloom_nofos.utils import cast_to_boolean, is_docraptor_live_mode_active
 from .forms import (
     CheckNOFOLinkSingleForm,
     ContentGuideShortNameForm,
+    DiffSubsectionEditForm,
     InsertOrderSpaceForm,
     NofoAgencyForm,
     NofoApplicationDeadlineForm,
@@ -58,7 +59,14 @@ from .mixins import (
     SuperuserRequiredMixin,
     has_nofo_group_permission_func,
 )
-from .models import THEME_CHOICES, HeadingValidationError, Nofo, Section, Subsection
+from .models import (
+    THEME_CHOICES,
+    HeadingValidationError,
+    Nofo,
+    Section,
+    Subsection,
+    DiffSubsection,
+)
 from .nofo import (
     add_final_subsection_to_step_3,
     add_headings_to_nofo,
@@ -1449,3 +1457,26 @@ class ContentGuideDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         context["nofo"] = self.object
         return context
+
+
+class ContentGuideSubsectionEditView(UpdateView):
+    model = DiffSubsection
+    form_class = DiffSubsectionEditForm
+    template_name = "nofos/content_guide_subsection_edit.html"
+    context_object_name = "subsection"
+    pk_url_kwarg = "subsection_pk"
+
+    def get_queryset(self):
+        return DiffSubsection.objects.filter(section__nofo_id=self.kwargs["pk"])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["section"] = get_object_or_404(Section, pk=self.kwargs["section_pk"])
+        context["content_guide"] = get_object_or_404(Nofo, pk=self.kwargs["pk"])
+        context["nofo"] = context["content_guide"]
+        return context
+
+    def get_success_url(self):
+        return reverse_lazy(
+            "nofos:content_guide_detail", kwargs={"pk": self.kwargs["pk"]}
+        )

@@ -185,6 +185,14 @@
   list-style-type: upper-alpha;
 }
 
+/* Utility CSS */
+*,
+::after,
+::before {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
 .usa-table--font-size-1 {
   font-size: 1rem;
 }

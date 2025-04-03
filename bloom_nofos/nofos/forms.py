@@ -1,7 +1,14 @@
 from django import forms
 from martor.fields import MartorFormField
 
-from .models import DESIGNER_CHOICES, STATUS_CHOICES, Nofo, Section, Subsection
+from .models import (
+    DESIGNER_CHOICES,
+    STATUS_CHOICES,
+    Nofo,
+    Section,
+    Subsection,
+    DiffSubsection,
+)
 from .utils import get_icon_path_choices
 
 
@@ -241,3 +248,38 @@ class InsertOrderSpaceForm(forms.Form):
 # "Name your content guide" form
 
 ContentGuideShortNameForm = create_nofo_form_class(["short_name"])
+
+
+class DiffSubsectionEditForm(forms.ModelForm):
+    diff_string_1 = forms.CharField(required=False, label="Required string 1")
+    diff_string_2 = forms.CharField(required=False, label="Required string 2")
+
+    class Meta:
+        model = DiffSubsection
+        fields = ["comparison_type"]  # only directly editable field from the model
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Pre-populate string fields if instance has them
+        diff_strings = self.instance.diff_strings or []
+        self.fields["diff_string_1"].initial = (
+            diff_strings[0] if len(diff_strings) > 0 else ""
+        )
+        self.fields["diff_string_2"].initial = (
+            diff_strings[1] if len(diff_strings) > 1 else ""
+        )
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # Overwrite diff_strings with what’s in the form fields
+        diff_string_1 = self.cleaned_data.get("diff_string_1")
+        diff_string_2 = self.cleaned_data.get("diff_string_2")
+
+        instance.diff_strings = [s for s in [diff_string_1, diff_string_2] if s]
+
+        if commit:
+            instance.save()
+
+        return instance

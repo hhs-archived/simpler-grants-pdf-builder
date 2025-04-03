@@ -28,7 +28,7 @@
               <th scope="row"><a href="{% url 'nofos:content_guide_detail' guide.pk %}">{{ guide.short_name }}</a></th>
               {% timezone "America/New_York" %}
 							  <td>
-									{{ guide.updated|date:'M j' }}{% if guide.updated|date:'M j' == today_m_j %},<br>{{ guide.updated|date:'g:i A' }}{% endif %}
+									{{ guide.updated|date:'M j' }}, {{ guide.updated|date:'g:i A' }}
 							  </td>
 						  {% endtimezone %}
               <td>

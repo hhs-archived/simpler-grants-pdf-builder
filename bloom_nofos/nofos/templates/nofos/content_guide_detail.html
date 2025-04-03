@@ -112,7 +112,7 @@
               </td>
               <td class="w-5 text-right nofo-edit-table--subsection--manage ">
                 <span class="floating">
-                  <a href="#">Edit<span class="usa-sr-only"> subsection: {{ subsection.name }}</span></a>
+                  <a href="{% url 'nofos:content_guide_subsection_edit' content_guide.id section.id subsection.id %}">Edit<span class="usa-sr-only"> subsection: {{ subsection.name }}</span></a>
                 </span>
               </td>
             </tr>
