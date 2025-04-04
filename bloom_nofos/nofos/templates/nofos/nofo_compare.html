@@ -45,7 +45,7 @@
 
       {% if nofo_comparison %}
         {% for section in nofo_comparison %}
-          <table class="usa-table usa-table--borderless">
+          <table class="usa-table usa-table--borderless w-100">
             <caption>
               <div>
                 <h2>{{ section.name }}</h2>
@@ -55,24 +55,30 @@
               <tr>
                 <th scope="col" class="w-15">Subsection</th>
                 <th scope="col" class="w-10">Status</th>
+                <th scope="col" class="w-10">Compare type</th>
                 <th scope="col" class="w-75">Content</th>
               </tr>
             </thead>
             <tbody>
               {% for subsection in section.subsections %}
               {% if subsection.name|lower != 'basic information' %}
-                {% if subsection.status != 'MATCH' %}
+                {% if subsection.status != 'MATCH' and subsection.status != 'ADD' %}
+                  {% if not subsection.comparison_type or subsection.comparison_type != 'none' %}
+
                   <tr>
                     <th scope="row">
                       {# if the subsection.name value starts with "(#" #}
                       {% if subsection.name|slice:":2" == "(#" %}
                           <span class="text-base">{{ subsection.name }}</span>
                       {% else %}
-                          {{ subsection.name }}
+                          {{ subsection.name|safe }}
                       {% endif %}
                     </th>
                     <td>
                       {{ subsection.status }}
+                    </td>
+                    <td>
+                      {{ subsection.comparison_type }}
                     </td>
                     <td>
                       <div class="diff">
@@ -86,6 +92,7 @@
                       </div>
                     </td>
                   </tr>
+                  {% endif %}
                 {% endif %}
               {% endif %}
               {% endfor %}

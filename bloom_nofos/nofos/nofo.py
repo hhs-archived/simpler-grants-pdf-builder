@@ -817,6 +817,64 @@ def html_diff(original, new):
     return diff_result if "<del>" in diff_result or "<ins>" in diff_result else None
 
 
+def merge_adds_and_deletes_with_similar_headings(nofo_comparison):
+    """
+    Post-process the section diffs to merge ADD + DELETE pairs that are actually renames.
+    """
+    for section in nofo_comparison:
+        new_subsections = []
+        i = 0
+        while i < len(section["subsections"]):
+            current = section["subsections"][i]
+            next_item = (
+                section["subsections"][i + 1]
+                if i + 1 < len(section["subsections"])
+                else None
+            )
+
+            if (
+                current["status"] == "ADD"
+                and next_item
+                and next_item["status"] == "DELETE"
+            ):
+                add_name = current["name"]
+                delete_name = next_item["name"]
+
+                heading_diff = html_diff(delete_name, add_name)
+
+                # Check if there's shared text (i.e., text not wrapped in <del> or <ins>)
+                if heading_diff:
+                    # Extract plain text that isn't part of tags
+                    shared_text = re.sub(r"</?(del|ins)>", "", heading_diff).strip()
+
+                    if shared_text:  # If there's shared text between the two names
+                        merged = {
+                            **current,
+                            "status": "UPDATE",
+                            "old_name": delete_name,
+                            "new_name": add_name,
+                            "name": heading_diff,
+                        }
+
+                        if next_item.get("comparison_type", None):
+                            comparison_type = next_item["comparison_type"]
+                            merged["comparison_type"] = comparison_type
+                            if comparison_type == "name":
+                                merged["diff"] = ""
+                            if comparison_type == "diff_strings":
+                                merged["diff"] = "NOT IMPLEMENTED"
+
+                        new_subsections.append(merged)
+                        i += 2  # Skip both ADD and DELETE
+                        continue
+
+            # Default: just include the current subsection
+            new_subsections.append(current)
+            i += 1
+
+        section["subsections"] = new_subsections
+
+
 def compare_nofos(new_nofo, old_nofo):
     """
     Compares sections and subsections between an existing NOFO and a newly uploaded one.
@@ -906,6 +964,7 @@ def compare_nofos(new_nofo, old_nofo):
                                     "status": "UPDATE",
                                     "value": new_subsection.body,
                                     "diff": diff,
+                                    "comparison_type": matched_old_subsection.comparison_type,
                                 }
                             )
 
@@ -917,6 +976,7 @@ def compare_nofos(new_nofo, old_nofo):
                                     ),
                                     "value": new_subsection.body,
                                     "status": "MATCH",
+                                    "comparison_type": matched_old_subsection.comparison_type,
                                 }
                             )
                     elif matched_old_subsection.comparison_type == "none":
@@ -929,6 +989,7 @@ def compare_nofos(new_nofo, old_nofo):
                                 ),
                                 "value": new_subsection.body,
                                 "status": "MATCH",
+                                "comparison_type": matched_old_subsection.comparison_type,
                             }
                         )
                     elif matched_old_subsection.comparison_type == "diff_strings":
@@ -938,6 +999,7 @@ def compare_nofos(new_nofo, old_nofo):
                             ),
                             "value": "{}\n\n".join(matched_old_subsection.diff_strings),
                             "status": "MATCH",
+                            "comparison_type": matched_old_subsection.comparison_type,
                         }
                         diff = ""
 
@@ -997,11 +1059,18 @@ def compare_nofos(new_nofo, old_nofo):
                             "status": "DELETE",
                         }
                     )
+                    if hasattr(old_subsection, "comparison_type"):
+                        section_comparison["subsections"][-1][
+                            "comparison_type"
+                        ] = old_subsection.comparison_type
+
                     matched_subsections.add(old_subsection.id)
 
         # Only add section comparison if there are changes
         if section_comparison["subsections"]:
             nofo_comparison.append(section_comparison)
+
+    merge_adds_and_deletes_with_similar_headings(nofo_comparison)
 
     return nofo_comparison
 
