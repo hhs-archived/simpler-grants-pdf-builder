@@ -777,7 +777,7 @@ def get_cover_image(nofo):
 ###########################################################
 
 
-def html_diff(original, new):
+def html_diff(original, new, with_del=True, with_ins=True):
     def _tokenize(text):
         """Splits text into words while keeping punctuation and spaces intact."""
         return re.findall(r"\s+|\w+|\W", text)
@@ -798,17 +798,21 @@ def html_diff(original, new):
 
         if tag == "replace":
             if not _is_whitespace_only(old_text):
-                result.append(f"<del>{old_text}</del>")
+                if with_del:
+                    result.append(f"<del>{old_text}</del>")
             if not _is_whitespace_only(new_text):
-                result.append(f"<ins>{new_text}</ins>")
+                if with_ins:
+                    result.append(f"<ins>{new_text}</ins>")
             if _is_whitespace_only(old_text) and _is_whitespace_only(new_text):
                 result.append(new_text)
         elif tag == "delete":
             if not _is_whitespace_only(old_text):
-                result.append(f"<del>{old_text}</del>")
+                if with_del:
+                    result.append(f"<del>{old_text}</del>")
         elif tag == "insert":
             if not _is_whitespace_only(new_text):
-                result.append(f"<ins>{new_text}</ins>")
+                if with_ins:
+                    result.append(f"<ins>{new_text}</ins>")
         else:  # "equal" case
             result.append(old_text)
 
@@ -1001,7 +1005,7 @@ def compare_nofos(new_nofo, old_nofo):
                             "status": "MATCH",
                             "comparison_type": matched_old_subsection.comparison_type,
                         }
-                        diff = ""
+                        diff = "<p><strong>Required strings:</strong></p><ul class='usa-list margin-top-neg-1'>"
 
                         for diff_string in matched_old_subsection.diff_strings:
                             normalized_body = normalize_whitespace(
@@ -1012,16 +1016,24 @@ def compare_nofos(new_nofo, old_nofo):
                             ).lower()
 
                             if normalized_diff_string in normalized_body:
-                                # found string, all is well
-                                pass
+                                diff += "<li><code>{}</code> — Found ✅ </li>".format(
+                                    diff_string
+                                )
                             else:
-                                # string not found, add to diff
-                                diff += "<del>{}</del>".format(diff_string)
+                                diff += "<li><del><code>{}</code></del> — Missing ❌</li>".format(
+                                    diff_string
+                                )
+                                temp_comparison["status"] = "UPDATE"
 
-                        if diff:
-                            temp_comparison["status"] = "UPDATE"
-                            temp_comparison["diff"] = diff
+                        if temp_comparison["status"] == "UPDATE":
+                            diff += "</ul><hr/><br/>"
+                            diff += html_diff(
+                                matched_old_subsection.body,
+                                new_subsection.body,
+                                with_del=False,
+                            )
 
+                        temp_comparison["diff"] = diff
                         section_comparison["subsections"].append(temp_comparison)
 
                     else:
