@@ -1205,6 +1205,7 @@ details.usa-accordion .usa-accordion__content ul li:not(:last-of-type) {
 del {
   color: var(--color--usa-error-message);
   background-color: #ffebe9;
+  text-decoration: none;
 }
 
 ins {

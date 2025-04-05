@@ -70,7 +70,11 @@
                       {% if subsection.name|slice:":2" == "(#" %}
                           <span class="text-base">{{ subsection.name }}</span>
                       {% else %}
+                        {% if subsection.status == 'DELETE' %}
+                          <del>{{ subsection.name|safe }}</del>
+                        {% else %}
                           {{ subsection.name|safe }}
+                        {% endif %}
                       {% endif %}
                     </th>
                     <td>
