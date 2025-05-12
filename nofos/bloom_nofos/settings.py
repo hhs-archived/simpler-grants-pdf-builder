@@ -192,15 +192,13 @@ if not DEBUG:
 default_db_path = os.path.join(BASE_DIR, "db.sqlite3")
 
 # if no "DATABASE_URL" env, fall back to the sqlite database
-database_url = (
-    env.get_value("DATABASE_URL", default=None) or f"sqlite:///{default_db_path}"
-)
+database_url = env.get_value("DATABASE_URL", default=None) or f"sqlite:///{default_db_path}"
 
 if is_aws_db(env):
     db_host = env.get_value("DB_HOST")
     db_name = env.get_value("DB_NAME")
     db_user = env.get_value("DB_USER")
-    db_port = env.get_value("DB_PORT", default=5432)
+    db_port = int(env.get_value("DB_PORT", default=5432))
     aws_region = env.get_value("AWS_REGION")
     ssl_mode = env.get_value("DB_SSL_MODE", default="require")
 
@@ -210,15 +208,6 @@ if is_aws_db(env):
         # Generate IAM auth token
         db_password = generate_iam_auth_token(aws_region, db_host, db_port, db_user)
 
-    # Construct database URL
-    database_url = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?sslmode={ssl_mode}"
-
-    # TODO: Remove this
-    print(
-        "DATABASE URL",
-        f"postgresql://{db_user}:p*a*s*s*w*o*r*d@{db_host}:{db_port}/{db_name}?sslmode={ssl_mode}",
-    )
-
     # Assuming this is needed because it is also here: https://github.com/HHS/simpler-grants-gov/blob/main/api/src/adapters/db/clients/postgres_client.py#L98
     db_options = {
         "connect_timeout": 10,
@@ -227,8 +216,12 @@ if is_aws_db(env):
     # Configure database
     DATABASES = {
         "default": {
-            **env.db_url_config(database_url),
-            "OPTIONS": db_options,
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": db_name,
+            "USER": db_user,
+            "PASSWORD": db_password,
+            "HOST": db_host,
+            "PORT": "5432",
         }
     }
 
@@ -539,16 +532,12 @@ LOGIN_GOV_PRIVATE_KEY, LOGIN_GOV_PUBLIC_KEY = get_login_gov_keys(ENVIRONMENT)
 
 if LOGIN_GOV_PRIVATE_KEY and "test" not in sys.argv:
     print("=====")
-    print(
-        "Login.gov: enabled; env: {}; private_key: secrets manager".format(ENVIRONMENT)
-    )
+    print("Login.gov: enabled; env: {}; private_key: secrets manager".format(ENVIRONMENT))
 
 # If Secret Manager failed and we're in dev, try local files
 if not LOGIN_GOV_PRIVATE_KEY and ENVIRONMENT == "dev":
     try:
-        with open(
-            BASE_DIR / "bloom_nofos" / "certs" / "login-gov-private-key-dev.pem"
-        ) as f:
+        with open(BASE_DIR / "bloom_nofos" / "certs" / "login-gov-private-key-dev.pem") as f:
             LOGIN_GOV_PRIVATE_KEY = f.read()
             print("Login.gov enabled; env: {}; private_key: local".format(ENVIRONMENT))
     except Exception as e:
@@ -564,9 +553,7 @@ LOGOUT_REDIRECT_URL = "/"
 LOGIN_GOV = {
     "ENABLED": bool(LOGIN_GOV_PRIVATE_KEY),
     "CLIENT_ID": env("LOGIN_GOV_CLIENT_ID", default=""),
-    "OIDC_URL": env(
-        "LOGIN_GOV_OIDC_URL", default="https://idp.int.identitysandbox.gov"
-    ),
+    "OIDC_URL": env("LOGIN_GOV_OIDC_URL", default="https://idp.int.identitysandbox.gov"),
     "REDIRECT_URI": env("LOGIN_GOV_REDIRECT_URI", default=""),
     "ACR_VALUES": "http://idmanagement.gov/ns/assurance/ial/1",
     "PRIVATE_KEY": LOGIN_GOV_PRIVATE_KEY,

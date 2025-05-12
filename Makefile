@@ -1,8 +1,8 @@
 .PHONY: help build test lint format collectstatic migrate makemigrations
 
-WORKDIR = bloom_nofos
+WORKDIR = nofos
 USE_DOCKER ?= 0
-IMAGE_NAME ?= bloom_nofos
+IMAGE_NAME ?= nofos
 
 # Check if git exists and get the hash, otherwise use 'latest'
 GIT_EXISTS := $(shell which git 2>/dev/null)
@@ -33,6 +33,9 @@ help:
 build:
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 	@echo "Built image: $(IMAGE_NAME):$(IMAGE_TAG)"
+
+release-build:
+	$(MAKE) build
 
 test:
 	cd $(WORKDIR) && $(MANAGE) test
