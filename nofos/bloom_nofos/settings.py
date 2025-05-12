@@ -195,33 +195,23 @@ default_db_path = os.path.join(BASE_DIR, "db.sqlite3")
 database_url = env.get_value("DATABASE_URL", default=None) or f"sqlite:///{default_db_path}"
 
 if is_aws_db(env):
-    db_host = env.get_value("DB_HOST")
-    db_name = env.get_value("DB_NAME")
-    db_user = env.get_value("DB_USER")
-    db_port = int(env.get_value("DB_PORT", default=5432))
-    aws_region = env.get_value("AWS_REGION")
-    ssl_mode = env.get_value("DB_SSL_MODE", default="require")
-
-    # Check if password is provided or if we need to generate an IAM token
+    # Generate IAM auth token if no password provided
     db_password = env.get_value("DB_PASSWORD", default=None)
     if db_password is None:
-        # Generate IAM auth token
-        db_password = generate_iam_auth_token(aws_region, db_host, db_port, db_user)
+        db_password = generate_iam_auth_token(env)
 
-    # Assuming this is needed because it is also here: https://github.com/HHS/simpler-grants-gov/blob/main/api/src/adapters/db/clients/postgres_client.py#L98
-    db_options = {
-        "connect_timeout": 10,
-    }
-
-    # Configure database
+    # Assuming the "connect_timeout" is needed because it is also here: https://github.com/HHS/simpler-grants-gov/blob/main/api/src/adapters/db/clients/postgres_client.py#L98
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": db_name,
-            "USER": db_user,
+            "NAME": env.get_value("DB_NAME"),
+            "USER": env.get_value("DB_USER"),
             "PASSWORD": db_password,
-            "HOST": db_host,
-            "PORT": "5432",
+            "HOST": env.get_value("DB_HOST"),
+            "PORT": int(env.get_value("DB_PORT", default=5432)),
+            "OPTIONS": {
+                "connect_timeout": 10,
+            },
         }
     }
 
