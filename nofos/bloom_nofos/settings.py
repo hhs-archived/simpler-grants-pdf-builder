@@ -226,6 +226,32 @@ if not is_prod and DATABASES["default"]["HOST"].startswith("/cloudsql"):
     DATABASES["default"]["HOST"] = "127.0.0.1"
     DATABASES["default"]["PORT"] = 5432
 
+# TODO: remove this
+
+if is_aws_db(env):
+    import psycopg2
+
+    try:
+        print("== DB: CONNECTION TEST")
+        db_config = DATABASES["default"]
+        conn = psycopg2.connect(
+            dbname=db_config.get("NAME"),
+            user=db_config.get("USER"),
+            password=db_config.get("PASSWORD"),
+            host=db_config.get("HOST"),
+            port=db_config.get("PORT"),
+            connect_timeout=10,
+        )
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT tablename FROM pg_tables WHERE tablename = 'constance_constance';"
+        )
+        table_exists = cursor.fetchone()
+        print("DEBUG: Table 'constance_constance' exists:", table_exists)
+        conn.close()
+    except Exception as e:
+        print("DEBUG: Database connection failed:", str(e))
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
