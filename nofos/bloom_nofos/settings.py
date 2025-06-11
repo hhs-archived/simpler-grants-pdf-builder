@@ -42,7 +42,7 @@ if env_exists:
     environ.Env.read_env(env_path)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = cast_to_boolean(env.get_value("DEBUG", default=True))
+DEBUG = True # cast_to_boolean(env.get_value("DEBUG", default=True))
 print("=====")
 print("DEBUG: {}".format(DEBUG))
 if DEBUG:
