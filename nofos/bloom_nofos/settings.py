@@ -84,7 +84,7 @@ if aws_dns_name:
     ALLOWED_HOSTS.append(aws_dns_name)
 
 # SECURITY HEADERS
-SECURE_SSL_REDIRECT = is_prod
+SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = is_prod
 CSRF_COOKIE_SECURE = is_prod
 CSRF_COOKIE_HTTPONLY = False
